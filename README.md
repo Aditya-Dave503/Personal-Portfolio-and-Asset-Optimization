@@ -140,10 +140,14 @@ The core allocation engine blends statistical finance with machine learning:
    - Calculation of annualized expected returns $\mu$, standard deviation $\sigma$, and cross-asset covariance matrix $\Sigma$.
 3. **Constrained Portfolio Optimization:**
    - Solves for asset weights $w = [w_{\text{stocks}}, w_{\text{MF}}, w_{\text{gold}}, w_{\text{silver}}, w_{\text{bonds}}]$ subject to:
-     $$\max_{w} \; \frac{w^T \mu - R_f}{\sqrt{w^T \Sigma w}} \quad \text{or} \quad \min_{w} \; w^T \Sigma w$$
-     Subject to:
-     $$\sum_{i=1}^n w_i = 1, \quad w_i \ge 0 \quad (\text{No Short-Selling})$$
-     $$\text{Value at Risk (VaR)}_{99\%} \le \text{Investor's Max Loss Tolerance Threshold}$$
+
+   $$\max_{w} \; \frac{w^T \mu - R_f}{\sqrt{w^T \Sigma w}} \quad \text{or} \quad \min_{w} \; w^T \Sigma w$$
+
+   Subject to:
+   
+   $$\sum_{i=1}^{n} w_i = 1, \quad w_i \ge 0 \quad (\text{No Short-Selling})$$
+
+   $$\text{Value at Risk (VaR)}_{99\%} \le \text{Investor's Max Loss Tolerance Threshold}$$
 4. **Regime-Aware Asset Tilting:**
    - Adjusts macro weights dynamically depending on interest-rate cycles (RBI repo-rate trajectories) and equity market valuation percentiles.
 
