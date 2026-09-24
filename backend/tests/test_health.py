@@ -17,3 +17,7 @@ def test_root():
     response = client.get("/")
 
     assert response.status_code == 200
+
+def test_app_loads():
+    assert app is not None
+    assert app.title == "OptiWealth API"
