@@ -21,3 +21,8 @@ def test_root():
 def test_app_loads():
     assert app is not None
     assert app.title == "OptiWealth API"
+
+def test_user_routes_registered():
+    routes = app.openapi()["paths"]
+
+    assert "/api/v1/users/" in routes
