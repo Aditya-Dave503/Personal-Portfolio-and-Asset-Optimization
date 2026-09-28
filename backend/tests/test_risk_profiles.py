@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+import uuid
 
 from main import app
 
@@ -7,10 +8,12 @@ client = TestClient(app)
 
 
 def get_auth_token():
+    email = f"riskprofile_{uuid.uuid4().hex}@example.com"
+
     client.post(
         "/api/v1/auth/register",
         json={
-            "email": "riskprofile@example.com",
+            "email": email,
             "password": "TestPassword123"
         }
     )
@@ -18,13 +21,12 @@ def get_auth_token():
     login_response = client.post(
         "/api/v1/auth/login",
         json={
-            "email": "riskprofile@example.com",
+            "email": email,
             "password": "TestPassword123"
         }
     )
 
     return login_response.json()["access_token"]
-
 
 def test_create_risk_profile():
     token = get_auth_token()
