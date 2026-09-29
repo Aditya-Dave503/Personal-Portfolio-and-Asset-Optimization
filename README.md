@@ -191,6 +191,14 @@ The core allocation engine blends statistical finance with machine learning:
         |             ├── max_loss_amount (NUMERIC)
         |             └── investment_horizon_years (INT)
         |
+        +-- 1:N --> [Goals]
+        |             ├── id (INT, PK)
+        |             ├── user_id (FK)
+        |             ├── name (VARCHAR)
+        |             ├── category (VARCHAR)
+        |             ├── target_amount (NUMERIC)
+        |             └── target_date (DATE)
+        |
         +-- 1:N --> [CurrentHoldings]
         |             ├── id (UUID, PK)
         |             ├── asset_type (ENUM: STOCK, MF, GOLD, SILVER, BOND)
@@ -318,12 +326,19 @@ optiwealth-backend/
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/auth/register` | Register a new user account | No |
 | `POST` | `/api/v1/auth/login` | Authenticate and obtain JWT token | No |
+| `POST` | `/api/v1/goals/` | Create a financial goal | Yes |
+| `GET` | `/api/v1/goals/` | List the authenticated user's goals | Yes |
+| `GET` | `/api/v1/goals/{goal_id}` | Retrieve one of the authenticated user's goals | Yes |
+| `PATCH` | `/api/v1/goals/{goal_id}` | Update one of the authenticated user's goals | Yes |
+| `DELETE` | `/api/v1/goals/{goal_id}` | Delete one of the authenticated user's goals | Yes |
 | `POST` | `/api/v1/billing/create-checkout` | Initialize subscription checkout session | Yes |
 | `POST` | `/api/v1/billing/webhook` | Process payment confirmations from gateway | Signature |
 | `POST` | `/api/v1/profile/questionnaire` | Submit risk profile and drawdown answers | Yes (Paid) |
 | `POST` | `/api/v1/portfolio/holdings` | Ingest existing assets and liquid savings | Yes (Paid) |
 | `POST` | `/api/v1/portfolio/optimize` | Run ML engine and get asset allocation | Yes (Paid) |
 | `GET` | `/api/v1/portfolio/report` | Export detailed PDF allocation report | Yes (Paid) |
+
+Goal categories are `retirement`, `house_down_payment`, `higher_education`, and `other`. A goal requires a positive target amount and a target date that is today or later; goal records are scoped to their authenticated owner.
 
 ---
 

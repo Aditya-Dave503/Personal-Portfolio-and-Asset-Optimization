@@ -7,7 +7,7 @@ from alembic import context
 
 from core.config import settings
 from core.database import Base
-from models import User,RiskProfile
+from models import User, RiskProfile, Goal
 
 config = context.config
 
