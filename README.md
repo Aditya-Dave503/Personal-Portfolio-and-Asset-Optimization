@@ -381,4 +381,4 @@ For faculty and viva evaluation panels, this project demonstrates competencies a
 ---
 
 ## 📄 License
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the Apache 2.0 License. See `LICENSE` for more information.
