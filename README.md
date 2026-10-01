@@ -1,9 +1,9 @@
 # ML-Driven Personal Portfolio & Asset Allocation Engine
 
-<img src="https://img.shields.io/badge/build-passing-brightgreen.svg" alt="Build Status">
-<img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python">
-<img src="https://shields.io" alt="License">
-<img src="https://img.shields.io/badge/Course-Software%20Engineering%20Capstone-orange.svg" alt="Academic Track">
+![Build Passing](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![Course](https://img.shields.io/badge/Course-Software_Engineering_Capstone-orange.svg)
 
 An end-to-end automated personal portfolio management and multi-asset optimization platform. The system leverages machine learning and modern portfolio theory to evaluate an investor's comprehensive risk profile, investment horizon, and target goals—synthesizing personalized, risk-adjusted asset allocations across Indian Equities (Nifty 50), Mutual Funds, Sovereign Gold, Silver, and Government Treasury Bonds (G-Secs).
 
