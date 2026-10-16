@@ -1,0 +1,93 @@
+{
+  "phase": 2,
+  "feature_date_rule": "Features at date t use price/return data through date t; forward targets begin at the next available observation t+1.",
+  "horizons_trading_days": [
+    21,
+    63,
+    126,
+    252
+  ],
+  "feature_columns": [
+    "daily_return",
+    "return_lag_1d",
+    "return_lag_5d",
+    "return_lag_21d",
+    "trailing_return_5d",
+    "trailing_return_21d",
+    "trailing_return_63d",
+    "trailing_return_126d",
+    "trailing_return_252d",
+    "volatility_21d",
+    "volatility_63d",
+    "volatility_126d",
+    "volatility_252d",
+    "drawdown_252d",
+    "gsec_yield_pct",
+    "gsec_yield_change_bps",
+    "gsec_yield_change_5d_bps",
+    "gsec_yield_change_21d_bps"
+  ],
+  "target_columns": [
+    "future_return_21d",
+    "future_return_63d",
+    "future_return_126d",
+    "future_return_252d"
+  ],
+  "training_counts_by_horizon": {
+    "21": {
+      "rows": 123252,
+      "assets": 58,
+      "path": "training_dataset_21d.csv.gz"
+    },
+    "63": {
+      "rows": 120816,
+      "assets": 58,
+      "path": "training_dataset_63d.csv.gz"
+    },
+    "126": {
+      "rows": 117162,
+      "assets": 58,
+      "path": "training_dataset_126d.csv.gz"
+    },
+    "252": {
+      "rows": 109854,
+      "assets": 58,
+      "path": "training_dataset_252d.csv.gz"
+    }
+  },
+  "asset_counts": {
+    "equities": 50,
+    "mutual_funds": 8,
+    "gold_rows_isolated": 2511
+  },
+  "limitations": [
+    "Gold source/instrument/market/currency are unverified; isolated and marked ineligible for training.",
+    "Government-security yield changes are not bond investment returns.",
+    "Current Nifty 50 constituents create survivorship bias.",
+    "Historical features and targets are not a guarantee of future performance.",
+    "Use chronological walk-forward validation; do not randomly split rows across time.",
+    "Rows across assets on the same date are not independent samples.",
+    "Mutual funds can overlap with Nifty 50 holdings; account for look-through exposure in portfolio optimization."
+  ],
+  "feature_descriptions": {
+    "daily_return": "Return from the previous available observation to this date; recomputed from adjusted close/NAV.",
+    "return_lag_1d": "Daily return shifted by one observation; only prior observations.",
+    "return_lag_5d": "Daily return shifted by five observations.",
+    "return_lag_21d": "Daily return shifted by 21 observations.",
+    "trailing_return_*": "Compounded return over the trailing window ending on feature date.",
+    "volatility_*": "Rolling sample standard deviation of daily returns, annualized by sqrt(252).",
+    "drawdown_252d": "Current price/NAV relative to the trailing 252-observation high, minus one.",
+    "gsec_yield_pct": "10-year government-security yield level in percent; not a bond return.",
+    "gsec_yield_change_*": "Government-security yield changes in basis points, not investment returns.",
+    "future_return_*": "Compounded simple return from the next observation through the named horizon; supervised-learning target only, never a feature."
+  },
+  "outputs": [
+    "asset_features.csv.gz",
+    "gold_features_unvalidated.csv.gz",
+    "gsec_yield_features.csv",
+    "training_dataset_21d.csv.gz",
+    "training_dataset_63d.csv.gz",
+    "training_dataset_126d.csv.gz",
+    "training_dataset_252d.csv.gz"
+  ]
+}
