@@ -1,0 +1,78 @@
+PHASE 1 PRELIMINARY DATA AUDIT
+
+{
+  "equity": {
+    "rows": 119368,
+    "tickers": 50,
+    "date_range": [
+      "2016-09-19",
+      "2026-09-18"
+    ],
+    "duplicate_date_ticker": 0,
+    "missing_by_column": {
+      "Date": 0,
+      "Ticker": 0,
+      "Company_Name": 0,
+      "Open": 0,
+      "High": 0,
+      "Low": 0,
+      "Close": 0,
+      "Adj Close": 0,
+      "Volume": 0,
+      "daily_return_adj_close": 50,
+      "daily_return_close": 50,
+      "adjustment_ratio": 0
+    },
+    "rows_before_2015": 0,
+    "rows_since_2015": 119368,
+    "unique_dates": 2476,
+    "tickers_with_fewer_than_2000_rows": {
+      "ETERNAL": 1280,
+      "JIOFIN": 765,
+      "MAXHEALTH": 1509
+    }
+  },
+  "bond_yield": {
+    "rows": 2448,
+    "date_range": [
+      "2016-09-17",
+      "2026-09-15"
+    ],
+    "duplicate_dates": 0,
+    "missing_yield": 0,
+    "yield_min": 5.76,
+    "yield_max": 8.182,
+    "note": "Source Price column treated as yield percent, not bond market price; no bond total return calculated."
+  },
+  "mutual_funds": {
+    "rows": 19718,
+    "schemes": 8,
+    "date_range": [
+      "2016-09-19",
+      "2026-09-18"
+    ],
+    "duplicate_scheme_date": 0,
+    "missing_nav": 0
+  },
+  "gold": {
+    "rows": 2511,
+    "date_range": [
+      "2016-01-29",
+      "2026-01-23"
+    ],
+    "note": "Instrument, market, and currency not verified; excluded from cross-asset panel."
+  },
+  "limitations": [
+    "Equity universe is 50 present-day constituents, not historical Nifty 500 membership.",
+    "No historical company fundamentals / publication dates supplied.",
+    "Bond yield series is not a total-return series.",
+    "Equity return calculation uses adjusted close; provider adjustment methodology still requires verification.",
+    "No live portfolio transactions or holdings yet.",
+    "Current sample starts in 2016, not 2015."
+  ]
+}
+
+Interpretation:
+- adjusted-close returns are preliminary price-return proxies and should be checked for corporate actions/dividend treatment.
+- Equal-weight mean of available stock returns is a diagnostic statistic, NOT a substitute for Nifty 50 TRI or Nifty 500 TRI.
+- Daily yield changes in basis points are NOT bond investment returns.
