@@ -109,9 +109,15 @@ Below are minor suggestions to help the backend team streamline the integration:
 ## 4. Verification & Testing
 
 To test integration between frontend and backend:
-1. Ensure PostgreSQL is running locally and database `optiwealth` exists.
-2. In `backend/.env`: set your database password.
-3. Run migrations: `alembic upgrade head`.
-4. Start backend: `uvicorn main:app --reload --port 8000`.
-5. Start frontend: `npm run dev` in `frontend/`.
-6. Open `http://localhost:5173`, create a user, log in, create a goal, and submit risk preferences.
+
+1. Ensure the Supabase PostgreSQL project is active and accessible.
+2. Configure `backend/.env` with the Supabase PostgreSQL connection URI and a secure `JWT_SECRET_KEY`.
+3. Ensure `.env` is excluded from Git and never commit database credentials.
+4. Apply database migrations using `python -m alembic upgrade head`.
+5. Start the backend: `uvicorn main:app --reload --port 8000` from the `backend/` directory.
+6. Start the frontend: `npm run dev` from the `frontend/` directory.
+7. Open `http://localhost:5173`, register a user, log in, create a goal, and submit risk preferences.
+
+**Database:** Supabase-hosted PostgreSQL (not local PostgreSQL).
+
+**Migration management:** Alembic.
