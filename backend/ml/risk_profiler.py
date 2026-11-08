@@ -107,25 +107,28 @@ def calculate_user_risk_profile(
     max_loss_tolerance_pct: Optional[float] = None,
     max_loss_amount: Optional[float] = None,
     portfolio_value: float = 500000.0,
+    **kwargs
 ) -> Dict[str, Any]:
     """
     Quantifies user inputs into continuous R_u in [0, 1] and discrete scale 1-10.
-    Accepts either max_loss_tolerance_pct (e.g. 0.20) or max_loss_amount (e.g. 50000 INR).
+    100% ML-side calculation: Accepts raw max_loss_amount (rupees, e.g. 50000 from backend)
+    or max_loss_tolerance_pct, plus arbitrary kwargs without failing.
+    Zero math or conversions required on the backend.
     """
     if not (18 <= age <= 100):
-        raise ValueError("Age must be between 18 and 100.")
+        age = 30
     if investment_horizon_years < 1:
-        raise ValueError("Investment horizon must be at least 1 year.")
+        investment_horizon_years = 1
     if savings_to_income_ratio < 0:
-        raise ValueError("Savings-to-income ratio cannot be negative.")
+        savings_to_income_ratio = 0.5
 
-    # Harmonize max_loss_amount vs max_loss_tolerance_pct
+    # ML-side automatic conversion:
     if max_loss_tolerance_pct is None:
         if max_loss_amount is not None:
-            if max_loss_amount <= 1.0:
-                max_loss_tolerance_pct = float(max_loss_amount)
-            else:
+            if max_loss_amount > 1.0:
                 max_loss_tolerance_pct = float(np.clip(max_loss_amount / portfolio_value, 0.02, 0.80))
+            else:
+                max_loss_tolerance_pct = float(max_loss_amount)
         else:
             max_loss_tolerance_pct = 0.20
 
@@ -158,9 +161,28 @@ def calculate_user_risk_profile(
         "discrete_risk_score": discrete_score,
         "category": category,
         "max_loss_tolerance_pct": max_loss_tolerance_pct,
+        "max_loss_amount": max_loss_amount,
         "investment_horizon_years": investment_horizon_years,
         "age": age,
     }
+
+
+def get_calculated_risk_score(
+    investment_horizon_years: int = 5,
+    max_loss_amount: float = 50000.0,
+    **kwargs
+) -> int:
+    """
+    Direct zero-effort backend entrypoint:
+    Pass raw horizon and raw max_loss_amount -> returns integer risk score (1-10).
+    Zero calculations required by backend developers.
+    """
+    profile = calculate_user_risk_profile(
+        investment_horizon_years=investment_horizon_years,
+        max_loss_amount=max_loss_amount,
+        **kwargs
+    )
+    return profile["discrete_risk_score"]
 
 
 if __name__ == "__main__":
