@@ -16,7 +16,7 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 from sklearn.model_selection import TimeSeriesSplit
 
-from indian_market_data import (
+from .indian_market_data import (
     ASSET_METADATA,
     resolve_data_directory,
     get_synchronized_market_data,
