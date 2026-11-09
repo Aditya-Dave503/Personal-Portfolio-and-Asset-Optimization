@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-
+import uuid
 from main import app
 
 
@@ -7,10 +7,12 @@ client = TestClient(app)
 
 
 def test_register_user():
+    email = f"autotest_{uuid.uuid4().hex[:8]}@example.com"
+
     response = client.post(
         "/api/v1/auth/register",
         json={
-            "email": "autotest@example.com",
+            "email": email,
             "password": "TestPassword123"
         }
     )
@@ -19,10 +21,9 @@ def test_register_user():
 
     data = response.json()
 
-    assert data["email"] == "autotest@example.com"
+    assert data["email"] == email
     assert "password" not in data
     assert "password_hash" not in data
-
 
 def test_duplicate_email():
     client.post(

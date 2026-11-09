@@ -37,23 +37,25 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from indian_market_data import (
+from ml.indian_market_data import (
     ASSET_METADATA,
     resolve_data_directory,
     get_synchronized_market_data,
     load_gsec_bond_returns,
 )
-from risk_profiler import calculate_user_risk_profile
-from ml_engine import (
+
+from ml.risk_profiler import calculate_user_risk_profile
+
+from ml.ml_engine import (
     extract_asset_features,
     extract_forward_targets,
 )
-from portfolio_optimizer import (
+
+from ml.portfolio_optimizer import (
     compute_shrinkage_covariance,
     compute_black_litterman,
     optimize_indian_portfolio,
 )
-
 
 @pytest.fixture(scope="module")
 def market_data():

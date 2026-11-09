@@ -21,12 +21,12 @@ import pandas as pd
 from scipy.optimize import minimize
 from sklearn.covariance import LedoitWolf
 
-from indian_market_data import (
+from .indian_market_data import (
     ASSET_METADATA,
     resolve_data_directory,
     get_synchronized_market_data,
 )
-from ml_engine import train_and_forecast_all
+from .ml_engine import train_and_forecast_all
 
 
 def compute_shrinkage_covariance(returns_df: pd.DataFrame) -> np.ndarray:
