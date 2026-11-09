@@ -107,12 +107,13 @@ def calculate_user_risk_profile(
     max_loss_tolerance_pct: Optional[float] = None,
     max_loss_amount: Optional[float] = None,
     portfolio_value: float = 500000.0,
+    target_amount: Optional[float] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
     Quantifies user inputs into continuous R_u in [0, 1] and discrete scale 1-10.
-    100% ML-side calculation: Accepts raw max_loss_amount (rupees, e.g. 50000 from backend)
-    or max_loss_tolerance_pct, plus arbitrary kwargs without failing.
+    100% Dynamic User Input: Takes the user's specific target_amount / portfolio_value (e.g. 50k, 10L, 1Cr).
+    Accepts raw max_loss_amount (rupees) or max_loss_tolerance_pct, plus arbitrary kwargs without failing.
     Zero math or conversions required on the backend.
     """
     if not (18 <= age <= 100):
@@ -122,7 +123,11 @@ def calculate_user_risk_profile(
     if savings_to_income_ratio < 0:
         savings_to_income_ratio = 0.5
 
-    # ML-side automatic conversion:
+    # If user provided dynamic target_amount from their Goal, use it directly
+    if target_amount is not None and float(target_amount) > 0:
+        portfolio_value = float(target_amount)
+
+    # ML-side automatic conversion based on user's exact target amount:
     if max_loss_tolerance_pct is None:
         if max_loss_amount is not None:
             if max_loss_amount > 1.0:
@@ -163,6 +168,7 @@ def calculate_user_risk_profile(
         "max_loss_tolerance_pct": max_loss_tolerance_pct,
         "max_loss_amount": max_loss_amount,
         "investment_horizon_years": investment_horizon_years,
+        "portfolio_value": portfolio_value,
         "age": age,
     }
 
@@ -170,16 +176,20 @@ def calculate_user_risk_profile(
 def get_calculated_risk_score(
     investment_horizon_years: int = 5,
     max_loss_amount: float = 50000.0,
+    target_amount: Optional[float] = None,
+    portfolio_value: float = 500000.0,
     **kwargs
 ) -> int:
     """
     Direct zero-effort backend entrypoint:
-    Pass raw horizon and raw max_loss_amount -> returns integer risk score (1-10).
+    Pass user's dynamic target_amount, horizon, and raw max_loss_amount -> returns integer risk score (1-10).
     Zero calculations required by backend developers.
     """
     profile = calculate_user_risk_profile(
         investment_horizon_years=investment_horizon_years,
         max_loss_amount=max_loss_amount,
+        target_amount=target_amount,
+        portfolio_value=portfolio_value,
         **kwargs
     )
     return profile["discrete_risk_score"]
