@@ -1,11 +1,18 @@
 from fastapi.testclient import TestClient
 import uuid
-
+import pytest
+import services.risk_profile_service as risk_profile_service
 from main import app
 
 
 client = TestClient(app)
-
+@pytest.fixture(autouse=True)
+def mock_risk_scoring(monkeypatch):
+    monkeypatch.setattr(
+        risk_profile_service,
+        "get_calculated_risk_score",
+        lambda investment_horizon_years, max_loss_amount: 7
+    )
 
 def get_auth_token():
     email = f"riskprofile_{uuid.uuid4().hex}@example.com"
@@ -48,7 +55,7 @@ def test_create_risk_profile():
 
     assert data["max_loss_amount"] == 50000
     assert data["investment_horizon_years"] == 10
-    assert data["calculated_risk_score"] is None
+    assert data["calculated_risk_score"] == 7
 
 
 def test_get_risk_profile():

@@ -15,18 +15,20 @@ Usage:
 
 import argparse
 from pathlib import Path
-from indian_market_data import (
+from .indian_market_data import (
     ASSET_METADATA,
     resolve_data_directory,
     get_synchronized_market_data,
 )
-from risk_profiler import calculate_user_risk_profile
-from ml_engine import train_and_forecast_all
-from portfolio_optimizer import optimize_indian_portfolio
+
+from .risk_profiler import calculate_user_risk_profile
+from .ml_engine import train_and_forecast_all
+from .portfolio_optimizer import optimize_indian_portfolio
 
 
 def run_pipeline(
     investment_amount: float = 500000.0,
+    target_amount: float = None,
     age: int = 30,
     investment_horizon_years: int = 10,
     savings_to_income_ratio: float = 0.5,
@@ -37,7 +39,12 @@ def run_pipeline(
     risk_free_rate: float = 0.065,
     data_dir_str: str = None
 ):
+    # Dynamic target_amount takes precedence if passed from user's Goal
+    if target_amount is not None and float(target_amount) > 0:
+        investment_amount = float(target_amount)
+
     data_dir = resolve_data_directory(data_dir_str)
+
 
     # 1. Determine Risk Profile R_u (Section 1 of README)
     if explicit_risk_score is not None:
