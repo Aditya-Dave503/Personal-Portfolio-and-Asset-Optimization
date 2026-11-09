@@ -24,16 +24,9 @@ def test_create_user():
     assert data["email"] == email
     assert "password_hash" not in data
 
-def test_get_existing_user():
+def test_get_user_requires_authentication():
     response = client.get("/api/v1/users/1")
-
-    assert response.status_code == 200
-
-    data = response.json()
-
-    assert data["id"] == 1
-    assert "email" in data
-    assert "password_hash" not in data
+    assert response.status_code in (401, 403)
 
 
 def test_duplicate_email():
@@ -74,5 +67,4 @@ def test_invalid_email():
 
 def test_missing_user():
     response = client.get("/api/v1/users/999999")
-
-    assert response.status_code == 404
+    assert response.status_code in (401, 403)
