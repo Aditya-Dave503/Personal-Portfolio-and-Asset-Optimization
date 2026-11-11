@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Notice from "../components/Notice.jsx";
@@ -11,6 +12,7 @@ export default function Register() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -23,17 +25,20 @@ export default function Register() {
       setError("Your passwords do not match.");
       return;
     }
+
     if (password.length < 8) {
       setError("For your security, your password must be at least 8 characters long.");
       return;
     }
 
     setBusy(true);
+
     try {
       await register(email.trim(), password);
       setSuccess("Account successfully created! Taking you to login…");
+
       setTimeout(() => {
-        navigate("/login", { state: { email: email.trim() } });
+        navigate("/login");
       }, 1000);
     } catch (e) {
       setError(e.message);
@@ -65,11 +70,14 @@ export default function Register() {
         <div className="auth-form-wrap">
           <span className="eyebrow">GET STARTED FREE</span>
           <h2>Create your account</h2>
-          <p className="muted">Enter your email and create a password to begin planning.</p>
+          <p className="muted">
+            Enter your email and create a password to begin planning.
+          </p>
 
           <Notice type="error" onClose={() => setError("")}>
             {error}
           </Notice>
+
           <Notice type="success" onClose={() => setSuccess("")}>
             {success}
           </Notice>
@@ -131,6 +139,7 @@ export default function Register() {
           <p className="auth-switch">
             Already have an account? <Link to="/login">Log in</Link>
           </p>
+
           <p className="tiny-note">
             🔒 Bank-grade security. Your data is private, protected, and never shared.
           </p>
