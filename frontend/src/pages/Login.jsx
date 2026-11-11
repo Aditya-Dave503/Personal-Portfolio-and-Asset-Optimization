@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Notice from "../components/Notice.jsx";
@@ -6,11 +7,13 @@ import { useAuth } from "../context/AuthContext.jsx";
 export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [email, setEmail] = useState(location.state?.email || "");
+
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
   const { login } = useAuth();
 
   async function submit(event) {
@@ -20,6 +23,7 @@ export default function Login() {
 
     try {
       await login(email.trim(), password);
+      setPassword("");
       navigate(location.state?.from || "/dashboard", { replace: true });
     } catch (e) {
       setError(e.message);
@@ -51,7 +55,9 @@ export default function Login() {
         <div className="auth-form-wrap">
           <span className="eyebrow">ACCOUNT LOGIN</span>
           <h2>Welcome back</h2>
-          <p className="muted">Enter your email and password to access your dashboard.</p>
+          <p className="muted">
+            Enter your email and password to access your dashboard.
+          </p>
 
           <Notice type="error" onClose={() => setError("")}>
             {error}
@@ -62,10 +68,11 @@ export default function Login() {
               Email address
               <input
                 type="email"
+                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                autoComplete="email"
+                autoComplete="off"
                 required
               />
             </label>
@@ -75,10 +82,11 @@ export default function Login() {
               <div className="password-input-wrap">
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Your account password"
-                  autoComplete="current-password"
+                  autoComplete="off"
                   required
                 />
                 <button
@@ -100,6 +108,7 @@ export default function Login() {
           <p className="auth-switch">
             New to OptiWealth? <Link to="/register">Create an account</Link>
           </p>
+
           <p className="tiny-note">
             🔒 Bank-grade encryption. Your personal credentials are safe and secure.
           </p>
