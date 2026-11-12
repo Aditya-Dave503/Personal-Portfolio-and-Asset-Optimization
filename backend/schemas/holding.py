@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
 
-AssetType = Literal["STOCK", "MF", "GOLD", "SILVER", "BOND"]
+AssetType = Literal["STOCK", "MF", "GOLD", "BOND"]
 HoldingName = Annotated[
     str,
     StringConstraints(strip_whitespace=True, min_length=1, max_length=120),

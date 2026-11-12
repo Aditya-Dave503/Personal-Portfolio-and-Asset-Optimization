@@ -8,7 +8,6 @@ const ASSET_TYPES = [
   { value: "STOCK", label: "Equities / Stocks", icon: "📈", badgeClass: "badge-stock" },
   { value: "MF", label: "Mutual Funds", icon: "💼", badgeClass: "badge-mf" },
   { value: "GOLD", label: "Sovereign Gold", icon: "🪙", badgeClass: "badge-gold" },
-  { value: "SILVER", label: "Silver Commodity", icon: "🥈", badgeClass: "badge-silver" },
   { value: "BOND", label: "Government Bonds", icon: "🏛️", badgeClass: "badge-bond" },
 ];
 
