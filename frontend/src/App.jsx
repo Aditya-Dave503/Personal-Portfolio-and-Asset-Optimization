@@ -7,6 +7,8 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import RiskProfile from "./pages/RiskProfile.jsx";
 import Goals from "./pages/Goals.jsx";
+import Holdings from "./pages/Holdings.jsx";
+import Portfolio from "./pages/Portfolio.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 
 function AppRoutes() {
@@ -18,6 +20,8 @@ function AppRoutes() {
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/risk-profile" element={<ProtectedRoute><RiskProfile /></ProtectedRoute>} />
     <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
+    <Route path="/holdings" element={<ProtectedRoute><Holdings /></ProtectedRoute>} />
+    <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes></Layout>;
 }

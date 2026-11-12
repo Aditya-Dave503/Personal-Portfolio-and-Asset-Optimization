@@ -21,6 +21,12 @@ export default function Layout({ children }) {
               <NavLink to="/goals" className={({ isActive }) => (isActive ? "active" : "")}>
                 Goals
               </NavLink>
+              <NavLink to="/holdings" className={({ isActive }) => (isActive ? "active" : "")}>
+                Holdings
+              </NavLink>
+              <NavLink to="/portfolio" className={({ isActive }) => (isActive ? "active" : "")}>
+                Portfolio
+              </NavLink>
               <NavLink to="/risk-profile" className={({ isActive }) => (isActive ? "active" : "")}>
                 Risk Profile
               </NavLink>
