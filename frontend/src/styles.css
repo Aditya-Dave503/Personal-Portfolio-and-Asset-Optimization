@@ -1016,3 +1016,115 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Holdings & Portfolio Tables & Badges */
+.warning-banner-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fbf6ec;
+  border: 1px solid #e8dbbe;
+  border-radius: 8px;
+  padding: 14px 18px;
+  color: #795724;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.warning-icon {
+  font-size: 18px;
+  font-weight: 700;
+  color: #b3832c;
+  line-height: 1;
+}
+
+.holdings-table-wrap {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow-x: auto;
+  box-shadow: 0 4px 20px rgba(45, 80, 51, 0.04);
+}
+
+.holdings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.holdings-table th {
+  background: #f8faf6;
+  color: #637566;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.holdings-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid #edf0eb;
+  color: #2e3e31;
+  vertical-align: middle;
+}
+
+.holdings-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.holdings-table tr:hover td {
+  background: #fbfdf9;
+}
+
+.row-highlight td {
+  background: #f1f7ed !important;
+}
+
+.holding-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.holding-icon {
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #f2f6ee;
+  display: grid;
+  place-items: center;
+}
+
+.holding-val-text {
+  font-family: Manrope, sans-serif;
+  font-size: 15px;
+  color: #1f3f2a;
+}
+
+.asset-badge {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.badge-stock { background: #eaf1f8; color: #28557d; }
+.badge-mf { background: #edf4ea; color: #2d6b3c; }
+.badge-gold { background: #fdf5e6; color: #9a6b18; }
+.badge-silver { background: #f2f3f5; color: #5a6572; }
+.badge-bond { background: #f4ecf7; color: #6d347d; }
+.badge-default { background: #f0f2ef; color: #5f6d61; }
+
+.action-btns-cell {
+  display: inline-flex;
+  gap: 6px;
+}
