@@ -1,16 +1,24 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from core.database import get_db
 from core.security import get_current_user_id
+
 from schemas.risk_profile import (
     RiskProfileCreate,
     RiskProfileResponse
 )
+
 from services.risk_profile_service import (
     create_risk_profile,
-    get_risk_profile
+    get_risk_profile,
+    get_risk_profile_history,
+    RiskProfileValidationError,
+    RiskScoringError,
 )
+
+from questionnaire.risk_questionnaire import get_risk_questions
 
 
 router = APIRouter(
@@ -18,6 +26,10 @@ router = APIRouter(
     tags=["Risk Profiles"]
 )
 
+
+# --------------------------------------------------
+# CREATE NEW RISK ASSESSMENT
+# --------------------------------------------------
 
 @router.post(
     "/",
@@ -29,20 +41,29 @@ def create_profile(
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    existing_profile = get_risk_profile(db, user_id)
-
-    if existing_profile:
-        raise HTTPException(
-            status_code=409,
-            detail="Risk profile already exists"
+    try:
+        return create_risk_profile(
+            db,
+            user_id,
+            profile_data
         )
 
-    return create_risk_profile(
-        db,
-        user_id,
-        profile_data
-    )
+    except RiskProfileValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc)
+        )
 
+    except RiskScoringError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc)
+        )
+
+
+# --------------------------------------------------
+# GET LATEST RISK ASSESSMENT
+# --------------------------------------------------
 
 @router.get(
     "/me",
@@ -61,3 +82,31 @@ def get_my_profile(
         )
 
     return profile
+
+
+# --------------------------------------------------
+# GET RISK ASSESSMENT HISTORY
+# --------------------------------------------------
+
+@router.get(
+    "/history",
+    response_model=list[RiskProfileResponse]
+)
+def get_my_profile_history(
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    profiles = get_risk_profile_history(db, user_id)
+
+    return profiles
+
+
+# --------------------------------------------------
+# GET BEHAVIOURAL QUESTIONNAIRE
+# --------------------------------------------------
+
+@router.get(
+    "/questions"
+)
+def get_questionnaire():
+    return get_risk_questions()
