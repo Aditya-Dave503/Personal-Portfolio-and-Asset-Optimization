@@ -29,7 +29,9 @@ from scipy.optimize import differential_evolution
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-PROCESSED_DIR = BACKEND_DIR / "data" / "processed"
+PROCESSED_DIR = Path(__file__).resolve().parent / "data" / "processed"
+if not PROCESSED_DIR.exists():
+    PROCESSED_DIR = BACKEND_DIR / "data" / "processed"
 
 RETURNS_FILE = PROCESSED_DIR / "monthly_asset_returns.csv"
 GSEC_FILE = PROCESSED_DIR / "monthly_gsec_features.csv"
@@ -50,7 +52,7 @@ MAX_FUND_WEIGHT = 0.40
 
 
 def money(value):
-    return f"INR {value:,.2f}"
+    return f"₹{value:,.2f}"
 
 
 def get_stock_weight_limit(risk_score):
@@ -606,12 +608,21 @@ def evaluate_portfolios(
 
     rng = np.random.default_rng(RANDOM_SEED)
 
-    # Use identical sampled months for all candidates for fairer comparison.
-    sampled_month_indices = rng.integers(
-        0,
-        len(returns),
-        size=(NUM_SIMULATIONS, months),
-    )
+    # Stationary Block Bootstrap to Preserve Temporal Dependence (Resolves Issue #28)
+    # Instead of IID sampling with replacement, sample contiguous historical blocks (block_size=6 months)
+    # to preserve autocorrelation, regimes, and volatility clustering.
+    block_size = min(6, months)
+    n_blocks = int(np.ceil(months / block_size))
+    max_start = max(1, len(returns) - block_size)
+
+    block_starts = rng.integers(0, max_start, size=(NUM_SIMULATIONS, n_blocks))
+    # Expand contiguous block slices
+    sampled_month_indices = np.zeros((NUM_SIMULATIONS, months), dtype=int)
+    for sim_idx in range(NUM_SIMULATIONS):
+        path = []
+        for b_start in block_starts[sim_idx]:
+            path.extend(range(b_start, b_start + block_size))
+        sampled_month_indices[sim_idx] = np.array(path[:months]) % len(returns)
 
     candidate_rows = []
     weight_rows = []

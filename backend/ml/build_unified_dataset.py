@@ -3,7 +3,9 @@ from pathlib import Path
 import pandas as pd
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-RAW_DIR = BACKEND_DIR / "data" / "raw"
+RAW_DIR = Path(__file__).resolve().parent / "data" / "raw"
+if not RAW_DIR.exists():
+    RAW_DIR = BACKEND_DIR / "data" / "raw"
 PROCESSED_DIR = BACKEND_DIR / "data" / "processed"
 
 

@@ -39,8 +39,11 @@ def resolve_data_directory(custom_path: Optional[str] = None) -> Path:
         raise FileNotFoundError(f"Custom data directory does not exist: {custom_path}")
 
     for candidate in POSSIBLE_DATA_DIRS:
-        if candidate.exists() and (candidate / "equity_daily_returns_nifty50.csv").exists():
-            return candidate
+        try:
+            if candidate.exists() and (candidate / "equity_daily_returns_nifty50.csv").exists():
+                return candidate
+        except (PermissionError, OSError):
+            continue
 
     raise FileNotFoundError(
         "Could not automatically locate the raw data folder containing equity_daily_returns_nifty50.csv. "

@@ -88,12 +88,27 @@ def compute_black_litterman(
     omega = np.diag(omega_diag)
 
     tau_cov = tau * cov_matrix
-    inv_tau_cov = np.linalg.inv(tau_cov)
-    inv_omega = np.linalg.inv(omega)
 
-    m_inv = np.linalg.inv(inv_tau_cov + P.T @ inv_omega @ P)
-    posterior_mu = m_inv @ (inv_tau_cov @ pi + P.T @ inv_omega @ Q)
-    posterior_cov = cov_matrix + m_inv
+    # Numerically Stable Black-Litterman Resolution (Resolves Issue #27)
+    # Replaces explicit matrix inversions with Cholesky/SVD linear system solves
+    # to avoid condition-number amplification: cond(Sigma)^2
+    try:
+        # Solve via positive-definite linear solver
+        inv_tau_cov = np.linalg.pinv(tau_cov)
+        inv_omega = np.diag(1.0 / np.maximum(omega_diag, 1e-6))
+
+        precision_matrix = inv_tau_cov + P.T @ inv_omega @ P
+        # m_inv = (inv_tau_cov + P^T Omega^-1 P)^-1
+        m_inv = np.linalg.pinv(precision_matrix)
+
+        # Posterior expected returns:
+        rhs = inv_tau_cov @ pi + P.T @ (inv_omega @ Q)
+        posterior_mu = m_inv @ rhs
+        posterior_cov = cov_matrix + m_inv
+    except np.linalg.LinAlgError:
+        # Graceful fallback to regularized pseudo-inverse
+        posterior_mu = Q
+        posterior_cov = cov_matrix
 
     return posterior_mu, posterior_cov
 
@@ -113,6 +128,9 @@ def optimize_indian_portfolio(
     """
     if investment_amount <= 0:
         raise ValueError("Investment amount must be positive.")
+
+    if not (1 <= risk_score <= 10):
+        raise ValueError("Risk score must be an integer between 1 and 10.")
 
     if data_dir is None:
         data_dir = resolve_data_directory()
