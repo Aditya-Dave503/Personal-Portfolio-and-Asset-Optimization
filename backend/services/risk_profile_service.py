@@ -19,13 +19,13 @@ class RiskScoringError(Exception):
 def create_risk_profile(
     db: Session,
     user_id: int,
-    profile_data: RiskProfileCreate
+    profile_data: RiskProfileCreate,
 ):
-    # 1. Validate user ID
+    """Create the user's first profile or update their existing profile."""
+
     if isinstance(user_id, bool) or not isinstance(user_id, int) or user_id <= 0:
         raise RiskProfileValidationError("Invalid user ID")
 
-    # 2. Extract financial inputs
     age = profile_data.age
     horizon = profile_data.investment_horizon_years
     annual_income = profile_data.annual_income
@@ -33,7 +33,6 @@ def create_risk_profile(
     portfolio_value = profile_data.portfolio_value
     max_loss = profile_data.max_loss_amount
 
-    # 3. Validate numerical inputs
     numeric_inputs = {
         "annual_income": annual_income,
         "annual_savings": annual_savings,
@@ -51,10 +50,14 @@ def create_risk_profile(
                 f"{name} must be a valid finite number"
             )
 
-    if not 18 <= age <= 100:
+    if isinstance(age, bool) or not isinstance(age, int) or not 18 <= age <= 100:
         raise RiskProfileValidationError("Invalid age")
 
-    if not 1 <= horizon <= 60:
+    if (
+        isinstance(horizon, bool)
+        or not isinstance(horizon, int)
+        or not 1 <= horizon <= 60
+    ):
         raise RiskProfileValidationError(
             "Investment horizon must be between 1 and 60 years"
         )
@@ -79,7 +82,6 @@ def create_risk_profile(
             "Maximum loss must be positive and cannot exceed portfolio value"
         )
 
-    # 4. Prepare questionnaire answers
     answers = [
         {
             "question_id": answer.question_id,
@@ -88,7 +90,14 @@ def create_risk_profile(
         for answer in profile_data.answers
     ]
 
-    # 5. Calculate risk profile
+    question_ids = [answer["question_id"] for answer in answers]
+
+    if len(question_ids) != len(set(question_ids)):
+        raise RiskProfileValidationError(
+            "Each questionnaire question must be answered only once"
+        )
+
+    # Calculate the new assessment before modifying the database.
     try:
         result = calculate_user_risk_profile(
             age=age,
@@ -110,7 +119,6 @@ def create_risk_profile(
             "Unable to calculate risk profile"
         ) from exc
 
-    # 6. Validate risk score
     risk_score = result["discrete_risk_score"]
 
     if (
@@ -122,66 +130,69 @@ def create_risk_profile(
             "Risk scoring engine returned an invalid score"
         )
 
-    # 7. Map behavioural scores to their question IDs.
-    # Question 5 is intentionally absent and will have None.
     answer_score_map = {
         item["question_id"]: item["behavioral_score"]
         for item in result["answer_details"]
     }
 
-    # 8. Create answer database records
     saved_answers = [
         RiskProfileAnswer(
-            question_id=answer.question_id,
-            selected_option=answer.selected_option,
+            question_id=answer["question_id"],
+            selected_option=answer["selected_option"],
             behavioral_score=answer_score_map.get(
-                answer.question_id
+                answer["question_id"]
             ),
         )
-        for answer in profile_data.answers
+        for answer in answers
     ]
 
-    # 9. Create the risk profile
-    profile = RiskProfile(
-        user_id=user_id,
+    # Prepare all calculated fields together.
+    profile_values = {
+        "age": age,
+        "annual_income": annual_income,
+        "annual_savings": annual_savings,
+        "portfolio_value": portfolio_value,
+        "max_loss_amount": max_loss,
+        "investment_horizon_years": horizon,
+        "savings_to_income_ratio": result["savings_to_income_ratio"],
+        "max_loss_tolerance_pct": result["max_loss_tolerance_pct"],
+        "objective_risk_score": result["objective_risk_score"],
+        "behavioral_risk_score": result["behavioral_risk_score"],
+        "combined_risk_score": result["combined_risk_score"],
+        "calculated_risk_score": risk_score,
+        "risk_category": result["risk_category"],
+        "model_version": result["model_version"],
+        "questionnaire_version": result["questionnaire_version"],
+    }
 
-        age=age,
-        annual_income=annual_income,
-        annual_savings=annual_savings,
-        portfolio_value=portfolio_value,
-
-        max_loss_amount=max_loss,
-        investment_horizon_years=horizon,
-
-        savings_to_income_ratio=result[
-            "savings_to_income_ratio"
-        ],
-        max_loss_tolerance_pct=result[
-            "max_loss_tolerance_pct"
-        ],
-
-        objective_risk_score=result[
-            "objective_risk_score"
-        ],
-        behavioral_risk_score=result[
-            "behavioral_risk_score"
-        ],
-        combined_risk_score=result[
-            "combined_risk_score"
-        ],
-
-        calculated_risk_score=risk_score,
-        risk_category=result["risk_category"],
-
-        model_version=result["model_version"],
-        questionnaire_version=result["questionnaire_version"],
-
-        answers=saved_answers,
-    )
-
-    # 10. Save everything in one transaction
     try:
-        db.add(profile)
+        # Lock an existing profile while updating it.
+        profile = (
+            db.query(RiskProfile)
+            .filter(RiskProfile.user_id == user_id)
+            .with_for_update()
+            .first()
+        )
+
+        if profile is None:
+            profile = RiskProfile(
+                user_id=user_id,
+                **profile_values,
+                answers=saved_answers,
+            )
+            db.add(profile)
+            created = True
+
+        else:
+            # Preserve profile ID and created_at.
+            for field, value in profile_values.items():
+                setattr(profile, field, value)
+
+            # Replace the previous questionnaire answers.
+            # delete-orphan removes the old answer records.
+            profile.answers = saved_answers
+            created = False
+
         db.commit()
         db.refresh(profile)
 
@@ -189,26 +200,14 @@ def create_risk_profile(
         db.rollback()
         raise
 
-    return profile
+    return profile, created
 
 
 def get_risk_profile(db: Session, user_id: int):
-    """Return the latest risk assessment for a user."""
+    """Return the user's single active risk profile."""
 
     return (
         db.query(RiskProfile)
         .filter(RiskProfile.user_id == user_id)
-        .order_by(RiskProfile.created_at.desc())
         .first()
-    )
-
-
-def get_risk_profile_history(db: Session, user_id: int):
-    """Return all risk assessments for a user."""
-
-    return (
-        db.query(RiskProfile)
-        .filter(RiskProfile.user_id == user_id)
-        .order_by(RiskProfile.created_at.desc())
-        .all()
     )
