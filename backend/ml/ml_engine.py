@@ -116,9 +116,9 @@ def train_asset_model(
     X = labeled[feature_cols]
     y = labeled[target.name]
 
-    # Chronological Walk-Forward Cross Validation
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-    maes, rmses, base_maes, hit_rates = [], [], [], []
+    # Chronological Walk-Forward Cross Validation with Purging Embargo Gap (Zero Lookahead)
+    tscv = TimeSeriesSplit(n_splits=n_splits, gap=horizon_days)
+    maes, rmses, base_maes, hit_rates, ic_scores = [], [], [], [], []
 
     for fold, (tr_idx, val_idx) in enumerate(tscv.split(X), 1):
         X_tr, y_tr = X.iloc[tr_idx], y.iloc[tr_idx]
@@ -141,11 +141,20 @@ def train_asset_model(
         base_maes.append(mean_absolute_error(y_val, np.zeros_like(y_val)))
         hit_rates.append(np.mean(np.sign(preds) == np.sign(y_val)))
 
-    print(f"  Walk-Forward CV ({n_splits} folds):")
+        # Spearman Information Coefficient (Rank Correlation)
+        val_rank = pd.Series(y_val).rank()
+        pred_rank = pd.Series(preds).rank()
+        ic = float(np.corrcoef(pred_rank, val_rank)[0, 1])
+        if not np.isnan(ic):
+            ic_scores.append(ic)
+
+    mean_ic = float(np.mean(ic_scores)) if ic_scores else 0.0
+    print(f"  Walk-Forward CV ({n_splits} folds, {horizon_days}d Purged Embargo Gap):")
     print(f"    Model MAE:            {np.mean(maes):.4f}")
     print(f"    Zero Baseline MAE:    {np.mean(base_maes):.4f}")
     print(f"    Model RMSE:           {np.mean(rmses):.4f}")
     print(f"    Directional Hit Rate: {np.mean(hit_rates):.2%}")
+    print(f"    Information Coeff IC: {mean_ic:+.4f}")
 
     # Train production model on complete historical series
     production_model = HistGradientBoostingRegressor(
@@ -171,6 +180,8 @@ def train_asset_model(
         "cv_mae": float(np.mean(maes)),
         "cv_rmse": float(np.mean(rmses)),
         "hit_rate": float(np.mean(hit_rates)),
+        "information_coefficient_ic": mean_ic,
+        "embargo_gap_days": horizon_days,
         "residual_variance_21d": residual_variance_21d,
         "observations": len(X),
         "as_of_date": str(X.index[-1].date()),

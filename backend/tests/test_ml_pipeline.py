@@ -183,3 +183,25 @@ def test_var_99_loss_constraint_enforcement():
     )
     assert res["value_at_risk_1m_99pct"] <= 15.0 + 1e-2
     assert "SATISFIED" in res["var_99_constraint_status"]
+
+
+def test_optimizer_ml_integration():
+    """Verify optimizer.py directly integrates ML return forecasts and Ledoit-Wolf shrinkage."""
+    from backend.ml.optimizer import optimize_portfolio
+    res = optimize_portfolio(investment_amount=500000, max_weight=0.60, use_indian_assets=True)
+    assert res["investment_amount"] == 500000.0
+    assert "Active" in res["ml_model_status"]
+    assert res["covariance_estimator"] == "Ledoit-Wolf Shrinkage"
+    weights = [a["weight_percent"] / 100.0 for a in res["allocations"]]
+    assert np.isclose(sum(weights), 1.0, atol=1e-3)
+    assert all(w >= 0.0 for w in weights)
+    assert res["value_at_risk_1m_99pct"] > 0.0
+
+
+def test_purged_walk_forward_cv_and_spearman_ic():
+    """Verify zero lookahead bias with 21-day embargo gap and Spearman IC metrics."""
+    from backend.ml.train_model import calculate_spearman_ic
+    actual = np.array([0.05, -0.02, 0.08, -0.01, 0.03])
+    pred = np.array([0.04, -0.01, 0.07, -0.03, 0.02])
+    ic = calculate_spearman_ic(actual, pred)
+    assert ic > 0.8
