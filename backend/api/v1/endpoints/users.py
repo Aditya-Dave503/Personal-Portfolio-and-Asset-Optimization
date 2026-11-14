@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from core.security import get_current_user_id
 from schemas.user import UserCreate, UserResponse
 from services.user_service import (
     create_user,
@@ -34,8 +35,11 @@ def create_new_user(
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: int,
+    current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
+    if user_id != current_user_id:
+        raise HTTPException(status_code=404, detail="User not found")
     user = get_user_by_id(db, user_id)
 
     if user is None:

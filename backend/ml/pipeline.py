@@ -15,14 +15,15 @@ Usage:
 
 import argparse
 from pathlib import Path
-from indian_market_data import (
+from .indian_market_data import (
     ASSET_METADATA,
     resolve_data_directory,
     get_synchronized_market_data,
 )
-from risk_profiler import calculate_user_risk_profile
-from ml_engine import train_and_forecast_all
-from portfolio_optimizer import optimize_indian_portfolio
+
+from .risk_profiler import calculate_user_risk_profile
+from .ml_engine import train_and_forecast_all
+from .portfolio_optimizer import optimize_indian_portfolio
 
 
 def run_pipeline(
