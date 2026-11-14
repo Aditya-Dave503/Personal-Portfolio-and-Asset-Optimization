@@ -24,6 +24,8 @@ import argparse
 
 import numpy as np
 import pandas as pd
+import time
+from scipy.optimize import differential_evolution
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -48,7 +50,7 @@ MAX_FUND_WEIGHT = 0.40
 
 
 def money(value):
-    return f"₹{value:,.2f}"
+    return f"INR {value:,.2f}"
 
 
 def get_stock_weight_limit(risk_score):
@@ -440,6 +442,122 @@ def simulate_portfolio(
     return wealth
 
 
+
+def project_portfolio_weights(raw_weights, active_assets, max_stock_weight):
+    """
+    Project raw weights into the feasible portfolio simplex:
+    - 0 <= stock_weight <= max_stock_weight
+    - 0 <= fund_weight <= MAX_FUND_WEIGHT (0.40)
+    - MIN_FUND_ALLOCATION (0.20) <= fund_total <= MAX_FUND_ALLOCATION (0.60)
+    - sum(weights) == 1.0
+    """
+    w = np.maximum(np.asarray(raw_weights, dtype=float), 0.0)
+    if w.sum() < 1e-8:
+        w = np.ones_like(w) / len(w)
+    else:
+        w /= w.sum()
+
+    stock_indices = [i for i, name in enumerate(active_assets) if name.startswith("STOCK_")]
+    fund_indices = [i for i, name in enumerate(active_assets) if name.startswith("FUND_")]
+
+    # Enforce fund allocation bounds [0.20, 0.60]
+    fund_sum = float(w[fund_indices].sum()) if fund_indices else 0.0
+    if fund_sum < MIN_FUND_ALLOCATION and fund_indices:
+        deficit = MIN_FUND_ALLOCATION - fund_sum
+        w[fund_indices] += deficit / len(fund_indices)
+        if stock_indices and w[stock_indices].sum() > 1e-8:
+            w[stock_indices] *= (1.0 - MIN_FUND_ALLOCATION) / w[stock_indices].sum()
+    elif fund_sum > MAX_FUND_ALLOCATION and fund_indices:
+        excess = fund_sum - MAX_FUND_ALLOCATION
+        w[fund_indices] -= excess * (w[fund_indices] / max(fund_sum, 1e-8))
+        if stock_indices and w[stock_indices].sum() > 1e-8:
+            w[stock_indices] *= (1.0 - MAX_FUND_ALLOCATION) / w[stock_indices].sum()
+
+    # Apply individual asset caps
+    for i in stock_indices:
+        w[i] = min(w[i], max_stock_weight)
+    for i in fund_indices:
+        w[i] = min(w[i], MAX_FUND_WEIGHT)
+
+    w /= max(w.sum(), 1e-8)
+    return w
+
+
+def refine_candidate_differential_evolution(
+    candidate_allocation,
+    asset_returns,
+    asset_index,
+    sampled_month_indices,
+    target,
+    savings,
+    monthly,
+    max_loss,
+    max_stock_weight,
+    seed=42
+):
+    """
+    Apply Differential Evolution refinement to fine-tune weights of promising candidate portfolios.
+    Maximizes goal achievement probability and median wealth while penalizing 5th-percentile shortfall.
+    """
+    active_assets = list(candidate_allocation.keys())
+    k = len(active_assets)
+    if k < MIN_PORTFOLIO_ASSETS:
+        return candidate_allocation, None
+
+    init_weights = np.array([candidate_allocation[name] for name in active_assets], dtype=float)
+
+    asset_sub_indices = [asset_index[name] for name in active_assets]
+    sub_returns = asset_returns[:, asset_sub_indices]
+
+    def objective(w_raw):
+        w = project_portfolio_weights(w_raw, active_assets, max_stock_weight)
+        # Vectorized portfolio simulation
+        port_returns = sub_returns @ w
+        sim_returns = port_returns[sampled_month_indices]
+        wealth = np.full(sim_returns.shape[0], savings, dtype=float)
+        for m in range(sim_returns.shape[1]):
+            wealth *= (1.0 + sim_returns[:, m])
+            wealth += monthly
+
+        success_prob = float(np.mean(wealth >= target))
+        med_wealth = float(np.median(wealth))
+        p05_wealth = float(np.percentile(wealth, 5))
+        p05_shortfall = max(0.0, target - p05_wealth)
+
+        # Objective: Maximize success prob + median wealth, heavily penalize constraint violation
+        penalty = 5.0 * max(0.0, p05_shortfall - max_loss) / (target + 1e-8)
+        score = success_prob * 100.0 + (med_wealth / target) * 10.0 - penalty * 100.0
+        return -score
+
+    bounds = [
+        (0.01, max_stock_weight if name.startswith("STOCK_") else MAX_FUND_WEIGHT)
+        for name in active_assets
+    ]
+
+    try:
+        # Differential Evolution global search
+        res = differential_evolution(
+            objective,
+            bounds=bounds,
+            strategy="best1bin",
+            maxiter=15,
+            popsize=8,
+            tol=1e-3,
+            mutation=(0.5, 1.0),
+            recombination=0.7,
+            seed=seed,
+            polish=False
+        )
+        refined_w = project_portfolio_weights(res.x, active_assets, max_stock_weight)
+        refined_alloc = {name: float(refined_w[i]) for i, name in enumerate(active_assets) if refined_w[i] > 1e-6}
+        # Re-normalize
+        total_w = sum(refined_alloc.values())
+        refined_alloc = {k: v / total_w for k, v in refined_alloc.items()}
+        return refined_alloc, res
+    except Exception:
+        return candidate_allocation, None
+
+
 def evaluate_portfolios(
     returns,
     stock_names,
@@ -450,6 +568,8 @@ def evaluate_portfolios(
     years,
     max_loss,
     risk_score,
+    strategy="random",
+    refine_top=10,
 ):
     """Generate candidates, simulate them, rank them, and save results."""
 
@@ -591,8 +711,89 @@ def evaluate_portfolios(
 
         weight_rows.append(weight_row)
 
+    # Initial Random Population
     candidates = pd.DataFrame(candidate_rows)
     candidate_weights = pd.DataFrame(weight_rows)
+
+    # -------------------------------------------------------------
+    # OPTIONAL HYBRID REFINEMENT: DIFFERENTIAL EVOLUTION
+    # -------------------------------------------------------------
+    if strategy in ("hybrid", "differential_evolution"):
+        print(f"\n[Hybrid Optimization] Refining Top {refine_top} Candidates with Differential Evolution...")
+        t_de_start = time.time()
+        
+        # Identify top promising candidates based on goal probability & median wealth
+        pre_ranked = candidates.sort_values(
+            ["goal_success_probability", "median_terminal_wealth"],
+            ascending=[False, False]
+        ).head(refine_top)
+        
+        refined_candidates = []
+        refined_weights = []
+        
+        for idx, row in pre_ranked.iterrows():
+            cand_id = int(row["candidate_id"])
+            c_weights_row = candidate_weights.loc[candidate_weights["candidate_id"] == cand_id].iloc[0]
+            c_alloc = {name: float(c_weights_row[name]) for name in asset_names if float(c_weights_row[name]) > 1e-6}
+            
+            ref_alloc, de_res = refine_candidate_differential_evolution(
+                candidate_allocation=c_alloc,
+                asset_returns=asset_returns,
+                asset_index=asset_index,
+                sampled_month_indices=sampled_month_indices,
+                target=target,
+                savings=savings,
+                monthly=monthly,
+                max_loss=max_loss,
+                max_stock_weight=max_stock_weight,
+                seed=RANDOM_SEED + cand_id
+            )
+            
+            # Re-simulate refined candidate
+            ref_w = np.zeros(len(asset_names), dtype=float)
+            for name, weight in ref_alloc.items():
+                ref_w[asset_index[name]] = weight
+                
+            ref_wealth = simulate_portfolio(asset_returns, ref_w, sampled_month_indices, savings, monthly)
+            ref_expected = float(np.mean(ref_wealth))
+            ref_median = float(np.median(ref_wealth))
+            ref_p05 = float(np.percentile(ref_wealth, 5))
+            ref_prob = float(np.mean(ref_wealth >= target))
+            ref_shortfall = max(0.0, target - ref_p05)
+            ref_cap_shortfall = max(0.0, total_contributions - ref_p05)
+            ref_meets = ref_shortfall <= max_loss
+            
+            new_id = int(100000 + cand_id)
+            stock_tot = sum(w for k, w in ref_alloc.items() if k.startswith("STOCK_"))
+            fund_tot = sum(w for k, w in ref_alloc.items() if k.startswith("FUND_"))
+            
+            refined_candidates.append({
+                "candidate_id": new_id,
+                "goal_success_probability": ref_prob,
+                "expected_terminal_wealth": ref_expected,
+                "median_terminal_wealth": ref_median,
+                "p05_terminal_wealth": ref_p05,
+                "p05_goal_shortfall": ref_shortfall,
+                "p05_capital_shortfall_vs_contributions": ref_cap_shortfall,
+                "meets_loss_limit": ref_meets,
+                "number_of_holdings": len(ref_alloc),
+                "stock_allocation": stock_tot,
+                "fund_allocation": fund_tot,
+                "largest_holding_weight": max(ref_alloc.values()),
+                "optimization_method": "differential_evolution_refined"
+            })
+            
+            ref_w_row = {"candidate_id": new_id}
+            for name in asset_names:
+                ref_w_row[name] = ref_alloc.get(name, 0.0)
+            refined_weights.append(ref_w_row)
+            
+        de_elapsed = time.time() - t_de_start
+        print(f"  Differential Evolution refinement complete in {de_elapsed:.2f}s across {len(refined_candidates)} candidates.")
+        
+        # Merge refined candidates into candidate pool
+        candidates = pd.concat([candidates, pd.DataFrame(refined_candidates)], ignore_index=True)
+        candidate_weights = pd.concat([candidate_weights, pd.DataFrame(refined_weights)], ignore_index=True)
 
     candidates["constraint_excess"] = (
         candidates["p05_goal_shortfall"] - max_loss
@@ -817,6 +1018,21 @@ def main():
         help="Risk score from 1 (lower) to 10 (higher).",
     )
 
+    parser.add_argument(
+        "--strategy",
+        type=str,
+        default="random",
+        choices=["random", "hybrid", "differential_evolution"],
+        help="Portfolio search strategy: random (baseline) or hybrid (random + differential evolution refinement).",
+    )
+
+    parser.add_argument(
+        "--refine-top",
+        type=int,
+        default=10,
+        help="Number of promising candidates to refine using Differential Evolution in hybrid mode.",
+    )
+
     args = parser.parse_args()
 
     returns, stock_names, fund_names = load_data()
@@ -833,6 +1049,8 @@ def main():
         years=args.years,
         max_loss=args.max_loss,
         risk_score=args.risk_score,
+        strategy=args.strategy,
+        refine_top=args.refine_top,
     )
 
 
