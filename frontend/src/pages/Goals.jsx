@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import Notice from "../components/Notice.jsx";
 import { goalsApi } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -479,6 +480,17 @@ export default function Goals() {
                       <span className={`countdown-badge ${countdown.isUrgent ? "countdown-urgent" : ""}`}>
                         {countdown.text}
                       </span>
+                    </div>
+
+                    <div className="goal-action-row" style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px dashed var(--line)" }}>
+                      <Link
+                        to={`/portfolio?amount=${goal.target_amount}&goalName=${encodeURIComponent(goal.name)}`}
+                        className="button button-small button-quiet"
+                        style={{ width: "100%", justifyContent: "center", fontSize: "11px", padding: "8px 10px" }}
+                        title="Run ML optimizer targeting this goal amount"
+                      >
+                        Optimize Portfolio <span>↗</span>
+                      </Link>
                     </div>
                   </article>
                 );

@@ -24,10 +24,9 @@ Create request:
 }
 ```
 
-`asset_type` accepts `STOCK`, `MF`, `GOLD`, `SILVER`, and `BOND`, matching the
+`asset_type` accepts `STOCK`, `MF`, `GOLD`, and `BOND`, matching the
 project's current holdings vocabulary. Units and invested value must be
-positive. Silver holdings can be recorded even though silver is excluded from
-the optimizer's asset universe.
+positive.
 
 ## Portfolios
 

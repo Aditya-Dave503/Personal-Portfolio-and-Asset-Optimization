@@ -196,14 +196,27 @@ export default function RiskProfile() {
                 </strong>
                 <span className="box-caption">Liquidity runway</span>
               </div>
+              <div className="profile-stat-box">
+                <span className="box-label">ML RISK SCORE</span>
+                <strong style={{ color: "var(--green)" }}>
+                  {profile.calculated_risk_score ? `${profile.calculated_risk_score} / 10` : "Calibrated"}
+                </strong>
+                <span className="box-caption">Model-calibrated risk</span>
+              </div>
             </div>
 
             {/* Investor Style Card */}
             <div className="score-explanation-card">
               <div className="score-header">
-                <span className="score-badge">Strategy Tailored</span>
+                <span className="score-badge">ML Model Calibrated</span>
                 <span className="score-tier-label">
-                  {profile.investment_horizon_years <= 3
+                  {profile.calculated_risk_score
+                    ? profile.calculated_risk_score <= 3
+                      ? `Score ${profile.calculated_risk_score}/10 — Conservative Wealth Preservation`
+                      : profile.calculated_risk_score <= 7
+                      ? `Score ${profile.calculated_risk_score}/10 — Balanced Compounding`
+                      : `Score ${profile.calculated_risk_score}/10 — Aggressive Growth`
+                    : profile.investment_horizon_years <= 3
                     ? "Conservative Wealth Preservation"
                     : profile.investment_horizon_years <= 8
                     ? "Balanced Growth Portfolio"
@@ -218,11 +231,14 @@ export default function RiskProfile() {
             </div>
 
             <div className="profile-actions-row">
-              <Link to="/dashboard" className="button">
-                Back to Dashboard <span>→</span>
+              <Link to="/portfolio" className="button">
+                Launch Portfolio Optimizer <span>↗</span>
+              </Link>
+              <Link to="/holdings" className="button button-quiet">
+                Record Holdings <span>→</span>
               </Link>
               <Link to="/goals" className="button button-quiet">
-                Manage Financial Goals <span>↗</span>
+                Manage Goals <span>↗</span>
               </Link>
             </div>
           </div>

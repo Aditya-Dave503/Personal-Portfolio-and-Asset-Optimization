@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { goalsApi, riskApi } from "../services/api.js";
+import { goalsApi, riskApi, holdingsApi, portfoliosApi } from "../services/api.js";
 import Notice from "../components/Notice.jsx";
 
 const CATEGORY_NAMES = {
@@ -53,6 +53,8 @@ export default function Dashboard() {
   const { token, user } = useAuth();
   const [goals, setGoals] = useState([]);
   const [risk, setRisk] = useState(null);
+  const [holdings, setHoldings] = useState([]);
+  const [latestPortfolio, setLatestPortfolio] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -69,11 +71,17 @@ export default function Dashboard() {
         if (e.status === 404) return null;
         throw new Error(`Unable to load risk profile: ${e.message}`);
       }),
+      holdingsApi.list(token).catch(() => []),
+      portfoliosApi.list(token).catch(() => []),
     ])
-      .then(([g, r]) => {
+      .then(([g, r, h, p]) => {
         if (active) {
           setGoals(Array.isArray(g) ? g : []);
           setRisk(r);
+          setHoldings(Array.isArray(h) ? h : []);
+          if (Array.isArray(p) && p.length > 0) {
+            setLatestPortfolio(p[0]);
+          }
         }
       })
       .catch((e) => {
@@ -89,6 +97,7 @@ export default function Dashboard() {
   }, [token]);
 
   const totalTarget = goals.reduce((sum, goal) => sum + Number(goal.target_amount || 0), 0);
+  const totalHoldingsInvested = holdings.reduce((sum, h) => sum + Number(h.invested_value || 0), 0);
   const userName = user?.email ? user.email.split("@")[0] : "Investor";
 
   // Find nearest upcoming goal
@@ -142,36 +151,40 @@ export default function Dashboard() {
           {/* Main 4-Card Stats Grid */}
           <div className="stats-grid">
             <article className="stat-card stat-primary">
-              <span className="stat-label">ACTIVE GOALS</span>
-              <strong>{goals.length.toString().padStart(2, "0")}</strong>
-              <span className="stat-caption">Milestones currently tracked</span>
-              <span className="stat-watermark">◎</span>
-            </article>
-
-            <article className="stat-card">
-              <span className="stat-label">TOTAL TARGET VALUE</span>
-              <strong>{formatMoney(totalTarget)}</strong>
-              <span className="stat-caption">Across all {goals.length} goals</span>
+              <span className="stat-label">RECORDED HOLDINGS</span>
+              <strong>{formatMoney(totalHoldingsInvested)}</strong>
+              <span className="stat-caption">{holdings.length} asset(s) tracked in portfolio</span>
               <span className="stat-watermark">₹</span>
             </article>
 
             <article className="stat-card">
-              <span className="stat-label">NEXT MILESTONE</span>
+              <span className="stat-label">FINANCIAL GOALS</span>
+              <strong>{goals.length.toString().padStart(2, "0")}</strong>
+              <span className="stat-caption">Total Target: {formatMoney(totalTarget)}</span>
+              <span className="stat-watermark">◎</span>
+            </article>
+
+            <article className="stat-card">
+              <span className="stat-label">ML OPTIMIZED PORTFOLIO</span>
               <strong className="stat-word">
-                {nearestGoal ? getRelativeTimeDescription(nearestGoal.target_date) : "None pending"}
+                {latestPortfolio ? formatMoney(latestPortfolio.investment_amount) : "Not Generated"}
               </strong>
               <span className="stat-caption">
-                {nearestGoal ? nearestGoal.name : "Add a goal to set a target date"}
+                {latestPortfolio
+                  ? `${latestPortfolio.expected_annual_return_pct}% Exp. Return · Sharpe ${Number(latestPortfolio.sharpe_ratio || 0).toFixed(2)}`
+                  : "Run optimizer to get asset allocation"}
               </span>
-              <span className="stat-watermark">◷</span>
+              <span className="stat-watermark">↗</span>
             </article>
 
             <article className="stat-card">
               <span className="stat-label">RISK PROFILE</span>
-              <strong className="stat-word">{risk ? "Configured" : "Not Set"}</strong>
+              <strong className="stat-word">
+                {risk ? (risk.calculated_risk_score ? `Score ${risk.calculated_risk_score}/10` : "Configured") : "Not Set"}
+              </strong>
               <span className="stat-caption">
                 {risk
-                  ? `${risk.investment_horizon_years}-Year Horizon · Max Loss ${formatMoney(risk.max_loss_amount)}`
+                  ? `${risk.investment_horizon_years}-Yr Horizon · Max Loss ${formatMoney(risk.max_loss_amount)}`
                   : "Required to personalize asset allocation"}
               </span>
               <span className="stat-watermark">⌁</span>
@@ -181,11 +194,17 @@ export default function Dashboard() {
           {/* Quick Actions Bar */}
           <div className="dashboard-actions-bar">
             <div className="action-buttons-group">
-              <Link to="/goals" className="button button-small">
+              <Link to="/portfolio" className="button button-small">
+                Optimize Portfolio <span>↗</span>
+              </Link>
+              <Link to="/holdings" className="button button-small button-quiet">
+                + Record Holding <span>+</span>
+              </Link>
+              <Link to="/goals" className="button button-small button-quiet">
                 + Add Financial Goal <span>↗</span>
               </Link>
               <Link to="/risk-profile" className="button button-small button-quiet">
-                {risk ? "View Risk Preferences" : "Set Up Risk Profile"} <span>→</span>
+                {risk ? "Risk Preferences" : "Set Up Risk"} <span>→</span>
               </Link>
             </div>
             {goals.length > 0 && (
@@ -290,6 +309,11 @@ export default function Dashboard() {
                   <span className="asset-chip">💼 Mutual Funds — Broad sector diversification</span>
                   <span className="asset-chip">🪙 Sovereign Gold — Inflation hedge &amp; crisis store</span>
                   <span className="asset-chip">🏛️ Government Bonds — Capital security &amp; stable yield</span>
+                </div>
+                <div style={{ marginTop: "16px" }}>
+                  <Link to="/portfolio" className="button button-small button-full">
+                    Launch ML Optimizer for These Assets <span>↗</span>
+                  </Link>
                 </div>
               </section>
             </div>

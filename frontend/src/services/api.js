@@ -75,3 +75,29 @@ export const riskApi = {
   create: (token, profile) =>
     apiRequest("/api/v1/risk-profiles/", { method: "POST", token, body: profile }),
 };
+
+export const holdingsApi = {
+  list: (token) => apiRequest("/api/v1/holdings/", { token }),
+  create: (token, holding) =>
+    apiRequest("/api/v1/holdings/", { method: "POST", token, body: holding }),
+  update: (token, id, changes) =>
+    apiRequest(`/api/v1/holdings/${id}`, { method: "PUT", token, body: changes }),
+  remove: (token, id) =>
+    apiRequest(`/api/v1/holdings/${id}`, { method: "DELETE", token }),
+};
+
+export const portfoliosApi = {
+  optimize: (token, { investment_amount, optimization_mode = "max_sharpe" }) =>
+    apiRequest("/api/v1/portfolios/optimize", {
+      method: "POST",
+      token,
+      body: {
+        investment_amount: String(investment_amount),
+        optimization_mode,
+      },
+    }),
+  list: (token) => apiRequest("/api/v1/portfolios/", { token }),
+  get: (token, id) => apiRequest(`/api/v1/portfolios/${id}`, { token }),
+  getAllocations: (token, id) =>
+    apiRequest(`/api/v1/portfolios/${id}/allocations`, { token }),
+};
