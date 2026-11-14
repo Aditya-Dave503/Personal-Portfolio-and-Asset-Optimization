@@ -3,7 +3,9 @@ from pathlib import Path
 import pandas as pd
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-PROCESSED_DIR = BACKEND_DIR / "data" / "processed"
+PROCESSED_DIR = Path(__file__).resolve().parent / "data" / "processed"
+if not PROCESSED_DIR.exists():
+    PROCESSED_DIR = BACKEND_DIR / "data" / "processed"
 
 ASSET_FILE = PROCESSED_DIR / "monthly_asset_returns.csv"
 GSEC_FILE = PROCESSED_DIR / "monthly_gsec_features.csv"

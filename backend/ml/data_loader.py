@@ -5,7 +5,9 @@ import pandas as pd
 
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BACKEND_DIR / "data" / "raw"
+DATA_DIR = Path(__file__).resolve().parent / "data" / "raw"
+if not DATA_DIR.exists():
+    DATA_DIR = BACKEND_DIR / "data" / "raw"
 
 
 def load_equity_data():
